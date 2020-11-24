@@ -310,7 +310,7 @@ body:not(.album-detail) .album--x {
 .list-wrapper .list__item {
   cursor: pointer;
   font-size: calc(0.022 * var(--size));
-  padding: calc(0.007 * var(--size)) 2rem;
+  padding: calc(0.011 * var(--size)) 2rem;
   white-space: nowrap;
   transition: background-color 1s, color 1s;
   user-select: none;
@@ -342,12 +342,10 @@ body:not(.album-detail) .album--x {
 
 .list-wrapper .list__number {
   margin-right: -0.2rem;
-  font-size: 0.8rem;
   position: relative;
   top: -0.075rem;
   padding: 0.125rem;
   color: #aa2626;
-
   font-weight: 700;
 }
 
@@ -362,6 +360,7 @@ body:not(.album-detail) .album--x {
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  padding: 0.125rem;
 }
 
 .detail {
