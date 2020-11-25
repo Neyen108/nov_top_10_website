@@ -136,7 +136,7 @@ body {
   transition: box-shadow 1s, opacity 1s, right 0.3s, bottom 0.3s;
 }
 
-.album__leaf .during-exchange {
+.album__leaf.during-exchange {
   transform: rotate(4deg);
   opacity: 0.5;
   transition: opacity 0.1s, transform 0.3s;
