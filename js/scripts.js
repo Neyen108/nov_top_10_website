@@ -23,7 +23,7 @@ Favs = {
     audioPlayTimer: false,
     audioStopTimer: false,
     audioOn: true,
-    audioMaxLength: 30 * 1000, //secs
+    audioMaxLength: 28 * 1000, //secs
     audioMaxVolume: 0.25,
     audioFadeIn: 3000,
     audioFadeOut: 1500,
@@ -57,7 +57,7 @@ Favs = {
       $('.js-album-leaf').eq(leafStart - 1).attr('data-ranking', i+1);
 
       //set background image
-      const url = 'url(images/' + $(this).data('album-slug') + '.jpg';
+      const url = 'url(images/' + $(this).data('album-slug') + '.jpg)';
 
       $('.js-album-leaf').eq(leafStart - 1).css('background-image', url);
 
@@ -143,7 +143,7 @@ Favs = {
     
   },
 
-  // enterDetailView finction: shows detail view of the album
+  // enterDetailView function: shows detail view of the album
 
   enterDetailView: function(e) {
 
@@ -151,7 +151,7 @@ Favs = {
 
     // Change background to current album image
     const albumSlug = $this.data('album-slug');
-    $('.js-albums').css('backgorund-image', 'url(images/' + albumSlug + '.jpg');
+    $('.js-albums').css('background-image', 'url(images/' + albumSlug + '.jpg)');
 
 
     //get album data
@@ -192,7 +192,7 @@ Favs = {
 
       //play and fade in 
       let howlInstance = s.howl.play();
-      s.howl.fade(0, s.audioMaxVolume, a.audioFadeIn, howlInstance);
+      s.howl.fade(0, s.audioMaxVolume, s.audioFadeIn, howlInstance);
 
       //save what is playing in variable
       s.audioPlaying = howlInstance;
@@ -219,18 +219,335 @@ Favs = {
 
   },
 
-  
-  
 
+  //exitDetailView function : Exit detailed view of album
 
+  exitDetailView : function() {
 
+    //remove album-detail class
+    $('body').removeClass('album-detail');
 
+    //clear hover classes (for touch)
+    $('.js-list-item').removeClass('hover');
+    $('.js-album-leaf').removeClass('hover');
 
+    //remove big background image after a delay for exit animation to be complete
+    setTimeout(function(){
 
+      if( ! $('body').hasClass('album-detail')  && ! $('body').hasClass('album-hovered'))
+      {
+        $('.js-albums').css('background-image', '');
+      }
+    },1000);
 
+    //restart Random leaf exchnage
+    Favs.randomExchangeStart();
 
+    //Fade current audio out
+    if(s.howl && s.audioPlaying)
+    {
+      s.howl.fade(s.audioMaxVolume, 0, s.audioFadeOut, s.audioPlaying);
+    }
 
-}
+    //cancel any audio timers already running
+    clearTimeout(s.audioPlayTimer);
+    clearTimeout(s.audioStopTimer);
+
+    //after fade out stop audio
+    s.audioStopTimer = setTimeout(function(){
+
+      if(s.howl)
+      {
+        s.howl.stop();
+      }
+
+      s.audioPlaying = false;
+      Favs.progressBar('stop');
+
+    }, s.audioFadeOut);
+
+  },
+
+  //progressBar function : animates the progress bar
+
+  progressBar : function(e) {
+
+    switch(e){
+
+      //start
+      case 'start':
+        Favs.progressBar('reset');
+        s.progressBarTimer = setInterval(function() {
+          Favs.progressBar('update');
+        }, 1000);
+      break;
+
+      //stop
+      case 'stop':
+        clearInterval(s.progressBarTimer);
+        $('.js-progress').css('top', '100%');
+      break;
+
+      //reset
+      case 'reset':
+        clearInterval(s.progressBarTimer);
+        s.progressBarTimeStamp = new Date();
+        Favs.progressBar('update');
+      break;
+      
+      case 'update':
+        let time = Favs.progressBar('getTime');
+        let maxTime = s.audioMaxLength;
+        let progress = 100 - (time/maxTime * 100)-5;  //-5 to compensate for accuracy
+
+        if(progress < 0)
+        {
+          progress = 0;
+        }
+
+        $('.js-progress').css('top', progress + '%');
+      break;
+
+      case 'getTime':
+        let d = new Date();
+        let now = d.getTime();
+        let then = s.progressBarTimeStamp.getTime();
+        let diff = now - then;
+        return diff;
+    }
+  },
+
+  // bindEvents function : to call the binding functions
+
+  bindEvents : function () {
+    Favs.bindListItems();
+		Favs.bindExitDetailView();
+		Favs.bindAlbumLeaves();
+		Favs.bindKeyboard();
+		Favs.bindOptions();
+  },
+
+  //bindListItems function : event handler for list items
+
+  bindListItems : function(){
+
+    //list-items CLICK
+    $('.js-list-item').click(function(e){
+
+      e.stopPropagation();
+
+      Favs.enterDetailView(this);
+
+    });
+
+    let listItems_hoverTimer;
+
+    //list-items hover
+    $('.js-list-item').on('mouseenter', function(){
+
+      //hover IN
+      clearTimeout(listItems_hoverTimer);
+
+      let $this = $(this);
+
+      //set album highlight color
+      const color = $this.data('highlight-color');
+      document.documentElement.style.setProperty('--album-highlight-color', color);
+
+      function listItems_hoverIn() {
+
+        const albumSlug = $this.data('album-slug');
+
+        $('.js-albums').css('background-image', 'url(images/' + albumSlug + '.jpg)');
+
+        //ranking of list-item hovered
+        const i = $('.js-list-item').index($this) + 1;
+
+        $('body')
+          .addClass('album-hovered')
+          .alterClass('album-hovered*')  //remove all classes that start with 'album-hovered'
+          .addClass('album-hovered--' + i);  //add which album is being hovered on
+      }
+
+      //Use different timeouts depending on a body class
+      if ( ! $('body').hasClass('album-hovered'))
+      {
+        // If there isn't already a hover active, delay for longer so it doesn't create a twitchy experience when the mouse briefly goes through a link 
+        listItems_hoverTimer = setTimeout(function() {
+					listItems_hoverIn();				
+				}, 130)
+      } 
+      else 
+      {
+				listItems_hoverTimer = setTimeout(function() {
+					listItems_hoverIn();				
+				}, 0)
+      }
+      
+      Favs.randomExchangeStart();
+
+    }).on('mouseleave', function(){
+
+      //hover OUT
+      clearTimeout(listItems_hoverTimer);
+
+      listItems_hoverTimer = setTimeout(function(){
+        $('body').removeClass('album-hovered');
+        $('body').alterClass('album-hovered--*');
+
+        if(! $('body').hasClass('album-detail'))
+        {
+          $('.js-albums').css('background-image','');
+        }
+      },30);
+
+      Favs.randomExchangeStart();
+
+    });
+
+  },
+
+  bindExitDetailView : function() {
+
+    $('.wrapper, .js-close' ).on('click', function(e){
+
+      e.stopPropagation();
+      Favs.exitDetailView();
+
+    });
+
+    // Prevent title and artist from triggering the exit of detail view  (so they can be selected)
+    $('.js-meta').on('click', function(e){
+
+      e.stopPropagation();
+
+    });
+
+  },
+
+  bindAlbumLeaves : function() {
+    
+    //album leaf click
+    $('.js-album-leaf').click(function(e){
+
+      e.stopPropagation();
+
+      //get list item in relation to clicked album leaf
+      const ranking = $(this).attr('data-ranking');
+      const list_item = $('.js-list-item').eq(ranking - 1);
+
+      Favs.enterDetailView(list_item);
+
+    });
+
+    let albumLeaves_hoverTimer;
+
+    //Album leaf HOVER
+    $('.js-album-leaf').on('mouseenter', function(){
+
+      //hover IN
+
+      if(! $('body').hasClass('album-detail'))
+      {
+        clearTimeout(albumLeaves_hoverTimer);
+
+        let $this = $(this);
+
+        $this.addClass('hover');
+
+        // Get ranking from this album leaf
+        const ranking = $(this).attr('data-ranking');
+        //get list item
+        let $list_item = $('.js-list-item').eq(ranking-1);
+
+        //set album highlight color
+        const color = $list_item.data('highlight-color');
+        document.documentElement.style.setProperty('--album-highlight-color', color);
+
+        albumLeaves_hoverTimer = setTimeout(function(){
+
+          //add hover class to the corresponding list item
+          $('.js-list-item').removeClass('hover');
+          $list_item.addClass('hover');
+        }, 200);
+
+      }
+    }).on('mouseleave', function(){
+
+      if(! $('body').hasClass('album-detail'))
+      {
+        let $this = $(this);
+        
+        //hover OUT
+        clearTimeout(albumLeaves_hoverTimer);
+        
+        //remove hover classes
+        $('.js-list-item').removeClass('hover');
+        $this.removeClass('hover');
+
+      }
+
+    });
+
+  },
+
+  /**
+	* FUNCTION: bindKeyboard()
+	* ********
+	* Keyboard events
+	*/
+	bindKeyboard : function() {
+		
+		$(document).keyup(function(e) {
+		
+			// ESC
+			if (e.keyCode === 27) { // esc
+				Favs.exitDetailView();
+			}
+
+		});
+		
+	},
+
+  /**
+	* FUNCTION: bindOptions()
+	* ********
+	* Bind click events for options
+	*/
+	bindOptions : function() {
+		
+		// Audio On/Off
+		$('.js-option-audio').click(function(e) {
+
+			e.stopPropagation();
+
+			$this = $(this);
+			
+			if ( $this.hasClass('option--off') ) {
+				$this
+					.removeClass('option--off')
+					.addClass('option--on');
+				
+				s.audioOn = true;
+				
+			} else {
+				$this
+					.removeClass('option--on')
+					.addClass('option--off');
+
+				// Stop any playing audio immediately
+				if (s.howl) {
+					s.howl.stop(); 
+					
+					Favs.progressBar('stop');
+				}
+				
+				s.audioOn = false;
+			}
+		});
+	},
+
+}  //end of App object
 
 
 
